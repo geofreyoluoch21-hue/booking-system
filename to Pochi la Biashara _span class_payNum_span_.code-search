@@ -1,0 +1,9 @@
+# Query: to Pochi la Biashara <span class="payNum"></span>
+# ContextLines: 1
+
+1 result - 1 file
+
+index.html:
+  75      <label for="em">Email (optional)</label><input id="em" type="email" autocomplete="email">
+  76:     <p class="pay" style="color:#fff">Pay <b id="total"></b>via M-Pesa Buy Goods, Till number <span class="payNum"></span>, then enter the M-Pesa code below.</p>
+  77      <label for="code">M-Pesa confirmation code</label><input id="code" required maxlength="12" placeholder="e.g. SJK4L9XXXX" style="text-transform:uppercase">

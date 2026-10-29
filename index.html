@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bayern Munich vs Ajax, Nairobi | Book tickets</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header><div class="wrap">
+  <strong class="display" style="font-size:22px">BAYERN × AJAX NAIROBI</strong>
+  <nav><a class="nav" href="#tickets">Tickets</a><a class="nav" href="#pay">How to pay</a><a class="nav" href="#mybooking">My booking</a></nav>
+</div></header>
+
+<main>
+<div class="hero"><div class="wrap">
+  <div>
+    <h1>Bayern Munich<span class="vs">vs</span>Ajax</h1>
+    <div class="crests"><img src="assets/bayern.png" alt="FC Bayern Munich crest" onerror="this.remove()"><span class="display">VS</span><img src="assets/ajax.png" alt="AFC Ajax crest" onerror="this.remove()"></div>
+    <p class="lead">Harry Kane, Michael Olise and the Ajax stars in Nairobi. One night at Talanta Sports City.</p>
+    <a class="btn" href="#tickets">Book your seat</a>
+  </div>
+  <div class="side">
+    <img class="poster" src="assets/flyer.jpg" alt="Match poster: Bayern Munich vs Ajax, 5 January 2027, Raila Odinga International Stadium">
+    <div class="stub" aria-label="Match details">
+    <div class="top">
+      <small>Raila Odinga International Stadium</small>
+      <div class="big">5 JANUARY 2027</div>
+      <small>Talanta Sports City, Nairobi</small>
+    </div>
+    <small>Kickoff in</small>
+    <div class="cd" id="cd" aria-live="off"><div><b>--</b><span>days</span></div><div><b>--</b><span>hours</span></div><div><b>--</b><span>min</span></div><div><b>--</b><span>sec</span></div></div>
+  </div>
+  </div>
+</div></div>
+
+<section id="tickets"><div class="wrap">
+  <h2>Choose your ticket</h2>
+  <p class="sub" id="salesNote">Tickets go on sale 5 November. You can book up to 6 per order.</p>
+  <div class="tiers" id="tiers"><p>Loading tickets…</p></div>
+</div></section>
+
+<section id="pay" style="background:#0c111b"><div class="wrap">
+  <h2>How booking works</h2>
+  <ol class="steps">
+    <li>Pick a category and enter your details.</li>
+    <li>Pay the total with M-Pesa: Lipa na M-Pesa, Buy Goods and Services, then our Till number.</li>
+    <li>Enter the M-Pesa confirmation code on the booking form.</li>
+    <li>We check the payment, then your ticket with a QR code appears under My booking.</li>
+  </ol>
+  <div class="pay">M-Pesa Buy Goods, Till number: <span id="payNum"></span></div>
+</div></section>
+
+<section id="mybooking"><div class="wrap">
+  <h2>My booking</h2>
+  <p class="sub">Enter your booking reference and the phone number you booked with.</p>
+  <form id="lookup" style="max-width:420px">
+    <label for="lref" style="color:var(--chalk)">Booking reference</label><input id="lref" placeholder="BVA-XXXXXX" required>
+    <label for="lph" style="color:var(--chalk)">Phone number</label><input id="lph" inputmode="tel" placeholder="07XXXXXXXX" required>
+    <p style="margin-top:14px"><button class="btn" type="submit">Find booking</button></p>
+  </form>
+  <div id="result" class="msg"></div>
+</div></section>
+</main>
+
+<footer><div class="wrap">
+  Sold by [YOUR BUSINESS NAME], authorized ticket agent. Contact: [YOUR PHONE/EMAIL]. Refund policy: [ADD YOUR POLICY]. This site is not run by the match organizers.
+</div></footer>
+
+<dialog id="dlg">
+  <form id="bookForm" method="dialog">
+    <h3 id="dTitle" style="font-size:30px"></h3>
+    <label for="qty">Number of tickets</label>
+    <select id="qty"></select>
+    <label for="fn">Full name</label><input id="fn" required autocomplete="name">
+    <label for="ph">Phone number</label><input id="ph" required inputmode="tel" autocomplete="tel" placeholder="07XXXXXXXX">
+    <label for="em">Email (optional)</label><input id="em" type="email" autocomplete="email">
+    <p class="pay" style="color:#fff">Pay <b id="total"></b> via M-Pesa Buy Goods, Till number <span class="payNum"></span>, then enter the M-Pesa code below.</p>
+    <label for="code">M-Pesa confirmation code</label><input id="code" required maxlength="12" placeholder="e.g. SJK4L9XXXX" style="text-transform:uppercase">
+    <div id="bmsg" class="msg" role="status"></div>
+    <p style="margin-top:16px;display:flex;gap:10px">
+      <button class="btn" type="submit" id="bsub">Submit booking</button>
+      <button class="btn alt" type="button" id="bclose" style="color:var(--night);border-color:var(--night)">Close</button>
+    </p>
+  </form>
+</dialog>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
