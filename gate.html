@@ -16,7 +16,7 @@
 </form>
 <div id="panel" hidden>
   <p class="sub">Point the camera at the buyer's QR code. Each scan admits one person, up to the number of tickets on the booking.</p>
-  <p><button class="btn" id="start">Start camera</button> <a href="admin.html" style="margin-left:12px">Back to admin</a></p>
+  <p><button class="btn" id="start">Start camera</button> <a href="admin.html" style="margin-left:12px">Back to admin</a> <a href="#" id="out" style="margin-left:12px">Sign out</a></p>
   <video id="vid" playsinline muted></video><canvas id="cv" hidden></canvas>
   <div id="res" role="status" aria-live="assertive"></div>
   <form id="manual" style="margin-top:22px;max-width:420px">
@@ -29,7 +29,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
-const sb = supabase.createClient("https://jtjpeoxnahtfjkixabcf.supabase.co", "sb_publishable_famxwWBU9nnoRS4X-1Xojw_OfZ4r0_L");
+const sb = supabase.createClient("https://jtjpeoxnahtfjkixabcf.supabase.co", "sb_publishable_famxwWBU9nnoRS4X-1Xojw_OfZ4r0_L", { auth: { storage: window.sessionStorage } }); // login ends when the tab closes
 const $ = (i) => document.getElementById(i);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 let scanning = false, lastData = "", lastTime = 0;
@@ -76,6 +76,7 @@ function tick() {
 $("start").onclick = start;
 $("manual").onsubmit = (e) => { e.preventDefault(); if ($("ref").value.trim()) check($("ref").value); };
 
+$("out").onclick = async (e) => { e.preventDefault(); await sb.auth.signOut(); location.reload(); };
 async function enter() { $("login").hidden = true; $("panel").hidden = false; }
 $("login").onsubmit = async (e) => {
   e.preventDefault();
