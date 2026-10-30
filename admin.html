@@ -9,25 +9,39 @@
   <p style="margin-top:14px"><button class="btn" type="submit">Sign in</button></p><div id="m" class="msg err"></div>
 </form>
 <div id="panel" hidden>
-  <p class="sub">Match each M-Pesa code against your M-Pesa till statement, then confirm or reject.</p>
-  <div style="overflow-x:auto"><table><thead><tr><th>Ref</th><th>Name</th><th>Phone</th><th>Ticket</th><th>Qty</th><th>M-Pesa code</th><th>Status</th><th></th></tr></thead><tbody id="rows"></tbody></table></div>
+  <p class="sub">Match each M-Pesa code against your till statement, then confirm or reject. Confirming also emails the buyer.</p>
+  <div id="note" class="msg" role="status"></div>
+  <div style="overflow-x:auto"><table><thead><tr><th>Ref</th><th>Name</th><th>Phone</th><th>Email</th><th>Ticket</th><th>Qty</th><th>M-Pesa code</th><th>Status</th><th>Email sent</th><th></th></tr></thead><tbody id="rows"></tbody></table></div>
 </div>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 const sb = supabase.createClient("https://jtjpeoxnahtfjkixabcf.supabase.co", "sb_publishable_famxwWBU9nnoRS4X-1Xojw_OfZ4r0_L");
 const $ = (i) => document.getElementById(i);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 async function load() {
   const { data, error } = await sb.from("bookings").select("*, ticket_tiers(name)").order("created_at", { ascending: false });
   if (error) { $("m").textContent = error.message; return; }
   $("login").hidden = true; $("panel").hidden = false;
-  $("rows").innerHTML = data.map((b) => `<tr><td>${b.reference}</td><td>${esc(b.full_name)}</td><td>${esc(b.phone)}</td>
+  $("rows").innerHTML = data.map((b) => `<tr><td>${b.reference}</td><td>${esc(b.full_name)}</td><td>${esc(b.phone)}</td><td>${esc(b.email)}</td>
     <td>${b.ticket_tiers.name}</td><td>${b.quantity}</td><td>${esc(b.mpesa_code)}</td>
     <td><span class="badge ${b.status}">${b.status}</span></td>
-    <td>${b.status === "pending" ? `<button class="btn" onclick="setS('${b.id}','confirmed')">Confirm</button> <button class="btn alt" onclick="setS('${b.id}','rejected')">Reject</button>` : ""}</td></tr>`).join("");
+    <td>${b.email_sent_at ? "Yes" : "No"}</td>
+    <td>${b.status === "pending" ? `<button class="btn" onclick="setS('${b.id}','confirmed')">Confirm</button> <button class="btn alt" onclick="setS('${b.id}','rejected')">Reject</button>` : ""}
+    ${b.status === "confirmed" ? `<button class="btn alt" onclick="mail('${b.id}')">${b.email_sent_at ? "Resend email" : "Send email"}</button>` : ""}</td></tr>`).join("");
 }
-const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-async function setS(id, status) { await sb.from("bookings").update({ status }).eq("id", id); load(); }
+async function mail(id) {
+  $("note").className = "msg"; $("note").textContent = "Sending email…";
+  const { data, error } = await sb.functions.invoke("send-confirmation", { body: { booking_id: id } });
+  const msg = error ? (await error.context?.json?.().catch(() => null))?.error || error.message : data?.error;
+  $("note").className = "msg" + (msg ? " err" : "");
+  $("note").textContent = msg ? "Email failed: " + msg : "Confirmation email sent.";
+  load();
+}
+async function setS(id, status) {
+  await sb.from("bookings").update({ status }).eq("id", id);
+  if (status === "confirmed") await mail(id); else load();
+}
 $("login").onsubmit = async (e) => {
   e.preventDefault();
   const { error } = await sb.auth.signInWithPassword({ email: $("e").value, password: $("p").value });

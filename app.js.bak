@@ -3,7 +3,7 @@ const SUPABASE_URL = "https://jtjpeoxnahtfjkixabcf.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_famxwWBU9nnoRS4X-1Xojw_OfZ4r0_L";   // the anon key is safe in the browser; RLS protects data
 const PAY_NUMBER = "6254898"; // M-Pesa Buy Goods Till number
 const KICKOFF = new Date("2027-01-05T16:00:00+03:00"); // EDIT to the real kickoff time
-const SALES_OPEN = new Date("2026-11-05T00:00:00+03:00");
+const SALES_OPEN = new Date("2026-01-01T00:00:00+03:00"); // bookings open
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const $ = (id) => document.getElementById(id);

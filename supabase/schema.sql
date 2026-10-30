@@ -18,6 +18,7 @@ create table bookings (
   phone text not null,
   email text,
   mpesa_code text not null,
+  email_sent_at timestamptz,
   status text not null default 'pending' check (status in ('pending','confirmed','rejected')),
   created_at timestamptz default now()
 );

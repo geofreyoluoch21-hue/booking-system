@@ -38,7 +38,7 @@
 
 <section id="tickets"><div class="wrap">
   <h2>Choose your ticket</h2>
-  <p class="sub" id="salesNote">Tickets go on sale 5 November. You can book up to 6 per order.</p>
+  <p class="sub" id="salesNote">Pre-orders are open. Your booking is confirmed once we verify your M-Pesa payment. Up to 6 tickets per order.</p>
   <div class="tiers" id="tiers"><p>Loading tickets…</p></div>
 </div></section>
 
@@ -76,9 +76,10 @@
     <select id="qty"></select>
     <label for="fn">Full name</label><input id="fn" required autocomplete="name">
     <label for="ph">Phone number</label><input id="ph" required inputmode="tel" autocomplete="tel" placeholder="07XXXXXXXX">
-    <label for="em">Email (optional)</label><input id="em" type="email" autocomplete="email">
+    <label for="em">Email (your confirmation is sent here)</label><input id="em" type="email" required autocomplete="email">
     <p class="pay" style="color:#fff">Pay <b id="total"></b> via M-Pesa Buy Goods, Till number <span class="payNum"></span>, then enter the M-Pesa code below.</p>
     <label for="code">M-Pesa confirmation code</label><input id="code" required maxlength="12" placeholder="e.g. SJK4L9XXXX" style="text-transform:uppercase">
+    <label style="display:flex;gap:8px;font-weight:400;font-size:14px"><input type="checkbox" id="agree" required style="width:auto;margin-top:4px"> I understand this is a pre-order. My booking is confirmed only after payment is verified, and refunds follow the refund policy in the page footer.</label>
     <div id="bmsg" class="msg" role="status"></div>
     <p style="margin-top:16px;display:flex;gap:10px">
       <button class="btn" type="submit" id="bsub">Submit booking</button>
