@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gate scanner</title><link rel="stylesheet" href="style.css">
+<style>
+#vid{width:100%;max-width:420px;border-radius:8px;background:#000;display:block}
+#res{margin-top:16px;padding:20px;border-radius:8px;max-width:420px;font-size:20px;font-weight:700;display:none}
+#res small{display:block;font-weight:400;font-size:16px;margin-top:6px}
+.ok{background:var(--turf)}.bad{background:#b00020}.warn{background:var(--gold);color:#111}
+</style></head>
+<body><main class="wrap" style="padding:30px 20px">
+<h2>Gate scanner</h2>
+<form id="login" style="max-width:340px">
+  <label for="e" style="color:var(--chalk)">Staff email</label><input id="e" type="email" required>
+  <label for="p" style="color:var(--chalk)">Password</label><input id="p" type="password" required>
+  <p style="margin-top:14px"><button class="btn" type="submit">Sign in</button></p><div id="m" class="msg err"></div>
+</form>
+<div id="panel" hidden>
+  <p class="sub">Point the camera at the buyer's QR code. Each scan admits one person, up to the number of tickets on the booking.</p>
+  <p><button class="btn" id="start">Start camera</button> <a href="admin.html" style="margin-left:12px">Back to admin</a></p>
+  <video id="vid" playsinline muted></video><canvas id="cv" hidden></canvas>
+  <div id="res" role="status" aria-live="assertive"></div>
+  <form id="manual" style="margin-top:22px;max-width:420px">
+    <label for="ref" style="color:var(--chalk)">Or type the booking reference</label>
+    <input id="ref" placeholder="BVA-XXXXXX" style="background:#fff">
+    <p style="margin-top:10px"><button class="btn alt" type="submit">Check</button></p>
+  </form>
+</div>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+const sb = supabase.createClient("https://jtjpeoxnahtfjkixabcf.supabase.co", "sb_publishable_famxwWBU9nnoRS4X-1Xojw_OfZ4r0_L");
+const $ = (i) => document.getElementById(i);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+let scanning = false, lastData = "", lastTime = 0;
+
+async function check(text) {
+  const ref = String(text).split("|")[0].trim();
+  const { data, error } = await sb.rpc("check_in", { p_ref: ref });
+  const box = $("res"); box.style.display = "block";
+  if (error) { box.className = "bad"; box.textContent = error.message; return; }
+  const r = data[0];
+  const who = r.r_name ? `${esc(r.r_name)}: ${esc(r.r_tier)}` : "";
+  const msgs = {
+    ok: ["ok", "ENTRY OK", `${who}<small>Admitted ${r.r_admitted} of ${r.r_quantity}</small>`],
+    already_used: ["bad", "ALREADY USED", `${who}<small>All ${r.r_quantity} entries have been used</small>`],
+    not_paid: ["warn", "NOT CONFIRMED", `${who}<small>Payment not verified. Send to the ticket desk.</small>`],
+    not_found: ["bad", "TICKET NOT FOUND", `<small>${esc(ref)}</small>`],
+  };
+  const [cls, title, body] = msgs[r.r_result];
+  box.className = cls; box.innerHTML = title + body;
+  if (navigator.vibrate) navigator.vibrate(r.r_result === "ok" ? 100 : [200, 100, 200]);
+}
+
+async function start() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+    $("vid").srcObject = stream; await $("vid").play(); scanning = true; requestAnimationFrame(tick);
+  } catch (e) { $("res").style.display = "block"; $("res").className = "bad"; $("res").textContent = "Camera not available. Allow camera access, or type the reference below."; }
+}
+function tick() {
+  if (!scanning) return;
+  const v = $("vid"), c = $("cv");
+  if (v.readyState === v.HAVE_ENOUGH_DATA) {
+    c.width = v.videoWidth; c.height = v.videoHeight;
+    const ctx = c.getContext("2d", { willReadFrequently: true });
+    ctx.drawImage(v, 0, 0);
+    const img = ctx.getImageData(0, 0, c.width, c.height);
+    const code = jsQR(img.data, img.width, img.height);
+    if (code && (code.data !== lastData || Date.now() - lastTime > 4000)) {
+      lastData = code.data; lastTime = Date.now(); check(code.data);
+    }
+  }
+  requestAnimationFrame(tick);
+}
+$("start").onclick = start;
+$("manual").onsubmit = (e) => { e.preventDefault(); if ($("ref").value.trim()) check($("ref").value); };
+
+async function enter() { $("login").hidden = true; $("panel").hidden = false; }
+$("login").onsubmit = async (e) => {
+  e.preventDefault();
+  const { error } = await sb.auth.signInWithPassword({ email: $("e").value, password: $("p").value });
+  if (error) $("m").textContent = error.message; else enter();
+};
+sb.auth.getSession().then(({ data }) => data.session && enter());
+</script></body></html>

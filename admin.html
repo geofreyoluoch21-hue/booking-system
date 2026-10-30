@@ -1,7 +1,15 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Admin | Bookings</title><link rel="stylesheet" href="style.css"></head>
-<body><main class="wrap" style="padding:30px 20px">
+<title>Admin | Bookings</title><link rel="stylesheet" href="style.css">
+<style>
+.cards{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));margin:18px 0}
+.card{background:var(--night2);border:1px solid #263049;border-top:4px solid var(--red);border-radius:6px;padding:14px}
+.card h3{font-size:22px;margin-bottom:6px}.card .big{font-family:"Anton",sans-serif;font-size:28px}
+.card small{color:var(--mute);display:block}
+.bar{display:flex;gap:12px;flex-wrap:wrap;margin:14px 0}.bar input,.bar select{width:auto;flex:1;min-width:200px;background:#fff}
+td .btn{padding:8px 12px;font-size:14px;margin:2px 0}
+</style></head>
+<body><main class="wrap" style="padding:30px 20px;max-width:1280px">
 <h2>Bookings admin</h2>
 <form id="login" style="max-width:340px">
   <label for="e" style="color:var(--chalk)">Email</label><input id="e" type="email" required>
@@ -9,9 +17,16 @@
   <p style="margin-top:14px"><button class="btn" type="submit">Sign in</button></p><div id="m" class="msg err"></div>
 </form>
 <div id="panel" hidden>
-  <p class="sub">Match each M-Pesa code against your till statement, then confirm or reject. Confirming also emails the buyer.</p>
+  <p><a href="gate.html">Open gate scanner</a> &nbsp;|&nbsp; <a href="#" id="out">Sign out</a></p>
+  <div class="cards" id="cards"></div>
+  <p class="sub" style="margin-bottom:0">Match each M-Pesa code against your till statement, then confirm or reject. Confirming also emails the buyer.</p>
+  <div class="bar">
+    <input id="q" placeholder="Search reference, name, phone, M-Pesa code or email" aria-label="Search">
+    <select id="f" aria-label="Filter by status"><option value="">All statuses</option><option value="pending">Pending</option><option value="confirmed">Confirmed</option><option value="rejected">Rejected</option></select>
+  </div>
   <div id="note" class="msg" role="status"></div>
-  <div style="overflow-x:auto"><table><thead><tr><th>Ref</th><th>Name</th><th>Phone</th><th>Email</th><th>Ticket</th><th>Qty</th><th>M-Pesa code</th><th>Status</th><th>Email sent</th><th></th></tr></thead><tbody id="rows"></tbody></table></div>
+  <div style="overflow-x:auto"><table><thead><tr><th>Ref</th><th>Name</th><th>Phone</th><th>Email</th><th>Ticket</th><th>Qty</th><th>M-Pesa code</th><th>Status</th><th>Emailed</th><th>Entered</th><th></th></tr></thead><tbody id="rows"></tbody></table></div>
+  <p id="count" class="sub"></p>
 </div>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -19,17 +34,52 @@
 const sb = supabase.createClient("https://jtjpeoxnahtfjkixabcf.supabase.co", "sb_publishable_famxwWBU9nnoRS4X-1Xojw_OfZ4r0_L");
 const $ = (i) => document.getElementById(i);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const kes = (n) => "KES " + Number(n).toLocaleString("en-KE");
+let rows = [], tiers = [];
+
 async function load() {
-  const { data, error } = await sb.from("bookings").select("*, ticket_tiers(name)").order("created_at", { ascending: false });
-  if (error) { $("m").textContent = error.message; return; }
+  const [b, t] = await Promise.all([
+    sb.from("bookings").select("*, ticket_tiers(name, price_kes)").order("created_at", { ascending: false }),
+    sb.from("tier_availability").select("*").order("sort_order"),
+  ]);
+  if (b.error) { $("m").textContent = b.error.message; return; }
+  rows = b.data; tiers = t.data || [];
   $("login").hidden = true; $("panel").hidden = false;
-  $("rows").innerHTML = data.map((b) => `<tr><td>${b.reference}</td><td>${esc(b.full_name)}</td><td>${esc(b.phone)}</td><td>${esc(b.email)}</td>
-    <td>${b.ticket_tiers.name}</td><td>${b.quantity}</td><td>${esc(b.mpesa_code)}</td>
+  summary(); render();
+}
+
+function summary() {
+  const sum = (arr) => arr.reduce((n, r) => n + r.quantity, 0);
+  let allSold = 0, allMoney = 0, allLeft = 0;
+  const cards = tiers.map((t) => {
+    const mine = rows.filter((r) => r.tier_id === t.id);
+    const sold = sum(mine.filter((r) => r.status === "confirmed"));
+    const pend = sum(mine.filter((r) => r.status === "pending"));
+    const money = sold * t.price_kes;
+    allSold += sold; allMoney += money; allLeft += t.remaining;
+    return `<div class="card"><h3>${esc(t.name)}</h3><div class="big">${kes(money)}</div>
+      <small>Sold (confirmed): ${sold}</small><small>Pending: ${pend}</small><small>Left to sell: ${t.remaining}</small></div>`;
+  });
+  cards.unshift(`<div class="card" style="border-top-color:var(--gold)"><h3>All categories</h3><div class="big">${kes(allMoney)}</div>
+    <small>Tickets sold (confirmed): ${allSold}</small><small>Left to sell: ${allLeft}</small></div>`);
+  $("cards").innerHTML = cards.join("");
+}
+
+function render() {
+  const q = $("q").value.trim().toLowerCase(), f = $("f").value;
+  const list = rows.filter((b) => (!f || b.status === f) &&
+    (!q || [b.reference, b.full_name, b.phone, b.email, b.mpesa_code].some((v) => String(v ?? "").toLowerCase().includes(q))));
+  $("rows").innerHTML = list.map((b) => `<tr><td>${b.reference}</td><td>${esc(b.full_name)}</td><td>${esc(b.phone)}</td><td>${esc(b.email)}</td>
+    <td>${esc(b.ticket_tiers.name)}</td><td>${b.quantity}</td><td>${esc(b.mpesa_code)}</td>
     <td><span class="badge ${b.status}">${b.status}</span></td>
     <td>${b.email_sent_at ? "Yes" : "No"}</td>
+    <td>${b.status === "confirmed" ? b.admitted + " / " + b.quantity : "-"}</td>
     <td>${b.status === "pending" ? `<button class="btn" onclick="setS('${b.id}','confirmed')">Confirm</button> <button class="btn alt" onclick="setS('${b.id}','rejected')">Reject</button>` : ""}
     ${b.status === "confirmed" ? `<button class="btn alt" onclick="mail('${b.id}')">${b.email_sent_at ? "Resend email" : "Send email"}</button>` : ""}</td></tr>`).join("");
+  $("count").textContent = list.length + " of " + rows.length + " bookings shown";
 }
+$("q").oninput = render; $("f").onchange = render;
+
 async function mail(id) {
   $("note").className = "msg"; $("note").textContent = "Sending email…";
   const { data, error } = await sb.functions.invoke("send-confirmation", { body: { booking_id: id } });
@@ -47,5 +97,6 @@ $("login").onsubmit = async (e) => {
   const { error } = await sb.auth.signInWithPassword({ email: $("e").value, password: $("p").value });
   if (error) $("m").textContent = error.message; else load();
 };
+$("out").onclick = async (e) => { e.preventDefault(); await sb.auth.signOut(); location.reload(); };
 sb.auth.getSession().then(({ data }) => data.session && load());
 </script></body></html>
